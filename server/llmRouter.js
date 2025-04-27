@@ -14,9 +14,9 @@ const router = express.Router()
 
 let vectorStore = await FaissStore.load("vectordatabase", embeddings);
 
-async function getPokemon(){
+async function getPokemon(id){
     try {
-        const res = await fetch(`https://pokeapi.co/api/v2/pokemon/1`, {
+        const res = await fetch(`https://pokeapi.co/api/v2/pokemon/${id}`, {
             method: "GET",
             headers: {
                 Accept: "application/json",
@@ -35,14 +35,14 @@ async function getPokemon(){
 
 
 router.post('/chat', async (req, res) =>{
-    const { prompt, history } = req.body
-    const pokemon = await getPokemon()
+    const { prompt, history, pokemonId } = req.body
+    const pokemon = await getPokemon(pokemonId)
 
     let messages = [new SystemMessage(
         `You are a Pokémon Master, a powerful and experienced trainer. You are in a 1v1 Pokémon battle against the user.` +
         `\n\n— Your Pokémon is a powerful ${pokemon.name}. You fully control ${pokemon.name} and its actions.` +
         `\n— The user controls their own Pokémon. You are NOT allowed to control or suggest actions for the user’s Pokémon.` +
-        `\n— The user CANNOT control Pikachu in any way.` +
+        `\n— The user CANNOT control ${pokemon.name} in any way.` +
         `\n\n**Battle Flow:**` +
         `\n1. If the user has not yet sent out a Pokémon, tell them to send one out.` +
         `\n2. Once both Pokémon are on the field, take turns.` +
@@ -57,21 +57,17 @@ router.post('/chat', async (req, res) =>{
         `\nStay fully in character as a confident Pokémon Master and make the battle fun and dramatic!`
     )];
 
-    console.log(tekst)
-
-
-    //console.log(spelRegels[0].pageContent)
     if (!prompt){
         return res.status(400).json({error: 'No prompt'})
     }
 
     if (history && Array.isArray(history)) {
         for (const msg of history) {
-            if (msg.role === "user") messages.push(new HumanMessage(msg.content));
+            if (msg.role === "user") messages.push(new HumanMessage(`The user made this move ${msg.content}`));
             else if (msg.role === "ai") messages.push(new AIMessage(msg.content));
         }
     }
-    messages.push(new HumanMessage(prompt));
+    messages.push(new HumanMessage(`The user made this move ${prompt}`));
 
     const chat = await model.stream(messages)
 
@@ -85,6 +81,34 @@ router.post('/chat', async (req, res) =>{
 })
 
 router.post('/rules', async (req, res)=>{
+    const { prompt, history } = req.body
+    const relevantDocs = await vectorStore.similaritySearch(prompt,3);
+    const context = relevantDocs.map(doc => doc.pageContent).join("\n\n");
 
+    let messages = [new SystemMessage(
+        `You are a pokemon professor experienced in battling.` +
+        `You will answer the users questions but ONLY using the context they send.` +
+        `If the context does not contain the information asked for, Say that you do not have that information.`
+    )];
+
+    if (!prompt){
+        return res.status(400).json({error: 'No prompt'})
+    }
+
+    if (history && Array.isArray(history)) {
+        for (const msg of history) {
+            if (msg.role === "user") messages.push(new HumanMessage(msg.content));
+            else if (msg.role === "ai") messages.push(new AIMessage(msg.content));
+        }
+    }
+    messages.push(new HumanMessage(`Context: ${context}\n\nQuestion: ${prompt}`));
+
+    const chat = await model.stream(messages)
+    res.setHeader("Content-Type", "text/plain");
+    for await (const chunk of chat) {
+        await new Promise((resolve) => setTimeout(resolve, 100));
+        res.write(chunk.content);
+    }
+    res.end();
 })
 export default router;

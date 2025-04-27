@@ -1,13 +1,12 @@
 import React, { useEffect, useRef, useState } from "react";
 
-export default function ChatPage() {
+export default function RulesBot() {
     const [prompt, setPrompt] = useState("");
     const [response, setResponse] = useState("");
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
     const [history, setHistory] = useState([]);
     const bottomRef = useRef(null);
-    const pokemonId = Math.floor(Math.random() * 151) + 1
 
     useEffect(() => {
         bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -18,13 +17,13 @@ export default function ChatPage() {
         setError(null);
 
         try {
-            const res = await fetch("http://localhost:8000/chat", {
+            const res = await fetch("http://localhost:8000/rules", {
                 method: "POST",
                 headers: {
                     Accept: "text/plain",
                     "Content-Type": "application/json",
                 },
-                body: JSON.stringify({ prompt, history, pokemonId }),
+                body: JSON.stringify({ prompt, history }),
             });
 
             historySetter("user", prompt);
@@ -60,13 +59,14 @@ export default function ChatPage() {
     };
 
     return (
-        <div className="min-h-screen overflow-x-hidden bg-blue-100 bg-[url('https://www.transparenttextures.com/patterns/pixel-weave.png')] bg-repeat px-4 pt-3 font-sans">
+        <div className="min-h-screen max-h-screen overflow-x-hidden bg-blue-100 bg-[url('https://www.transparenttextures.com/patterns/pixel-weave.png')] bg-repeat px-4 pt-3 font-sans">
             <div className="max-w-2xl mx-auto bg-white shadow-2xl border-4 border-blue-600 rounded-2xl p-8 relative flex flex-col min-h-[80vh]">
 
                 <h1 className="text-4xl font-bold text-center text-blue-800 mb-6 tracking-wide">
-                    ⚔️ Pokémon Battle Log
+                    Pokémon Battle Professor
                 </h1>
 
+                {/* Chat messages */}
                 <div className="flex-grow space-y-4 mb-6 overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-blue-500 max-h-[60vh]">
                     {history.map((msg, index) => (
                         <div
@@ -78,7 +78,7 @@ export default function ChatPage() {
                             }`}
                         >
                             <strong className="block text-xs uppercase mb-1 tracking-widest text-blue-700 font-mono">
-                                {msg.role === "user" ? "Trainer" : "Champion"}
+                                {msg.role === "user" ? "Trainer" : "Professor"}
                             </strong>
                             {msg.content}
                         </div>
@@ -86,7 +86,7 @@ export default function ChatPage() {
                     {response && (
                         <div className="p-4 rounded-xl shadow-inner border-2 bg-gray-100 border-gray-400 text-gray-800">
                             <strong className="block text-xs uppercase mb-1 tracking-widest text-blue-700 font-mono">
-                                Champion
+                                Professor
                             </strong>
                             {response}
                         </div>
@@ -96,6 +96,7 @@ export default function ChatPage() {
 
                 {error && <p className="text-red-700 text-sm mb-4">{error}</p>}
 
+                {/* Input inside the card now */}
                 <form
                     onSubmit={(e) => {
                         e.preventDefault();
@@ -107,7 +108,7 @@ export default function ChatPage() {
                         className="flex-grow px-4 py-3 border-2 border-blue-600 rounded-lg shadow-inner focus:outline-none focus:ring-2 focus:ring-blue-500 transition bg-blue-50 text-blue-900 placeholder-blue-700 font-mono"
                         value={prompt}
                         onChange={(e) => setPrompt(e.target.value)}
-                        placeholder='Type something like: "Go Charizard!" or "Use Flamethrower!"'
+                        placeholder='Ask a question about Pokémon Battling...'
                     />
                     <button
                         type="submit"
@@ -118,7 +119,7 @@ export default function ChatPage() {
                                 : "bg-blue-700 hover:bg-blue-800"
                         }`}
                     >
-                        {loading ? "Battling..." : "Send Move!"}
+                        {loading ? "Asking..." : "Ask Question!"}
                     </button>
                 </form>
 

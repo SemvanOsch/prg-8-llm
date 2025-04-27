@@ -13,7 +13,7 @@ let vectorStore
 async function createVectorStore() {
     const loader = new PDFLoader("./files/battles.pdf");
     const docs = await loader.load();
-    const textSplitter = new RecursiveCharacterTextSplitter({ chunkSize: 300, chunkOverlap: 100 });
+    const textSplitter = new RecursiveCharacterTextSplitter({ chunkSize: 800, chunkOverlap: 250 });
     const splitDocs = await textSplitter.splitDocuments(docs);
     console.log(`Document split into ${splitDocs.length} chunks. Now saving into vector store`);
     vectorStore = await FaissStore.fromDocuments(splitDocs, embeddings);
